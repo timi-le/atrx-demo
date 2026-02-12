@@ -245,7 +245,7 @@ This repository is provided for **educational and portfolio purposes**. It demon
 **Timilehin Olapade**
 
 - Tax Planning Specialist at Union Bank PLC
-- Self-taught quantitative developer
+- Quantitative developer
 - Algorithmic trading system architect
 - Applicant: Master of Quantitative Investment Management, University of New Brunswick
 
