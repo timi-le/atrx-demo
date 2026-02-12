@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  bot:
+    build: .
+    image: quant-bot:latest
+    container_name: quant_bot_container
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      # Mount strategy.xml so you can edit rules without rebuilding
+      - ./strategy.xml:/app/strategy.xml
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 512M
