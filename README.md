@@ -244,10 +244,10 @@ This repository is provided for **educational and portfolio purposes**. It demon
 
 **Timilehin Olapade**
 
-- Tax Planning Specialist at Union Bank PLC (₦8B+ in optimized tax savings)
+- Tax Planning Specialist at Union Bank PLC
 - Self-taught quantitative developer
 - Algorithmic trading system architect
-- Applicant — Master of Quantitative Investment Management, University of New Brunswick
+- Applicant: Master of Quantitative Investment Management, University of New Brunswick
 
 ---
 
