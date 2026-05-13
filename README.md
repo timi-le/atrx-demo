@@ -1,258 +1,221 @@
-# ATRX - Alpha Technology Risk Execution
+# atrx-demo
 
-> A production-grade, multi-asset algorithmic trading platform combining quantitative alpha generation with AI-powered decision validation. Built for institutional risk standards and prop firm compliance.
+Production multi-asset algorithmic trading system. Multi-factor alpha engine, three-tier LLM decision validation, anti-martingale risk management, and prop firm compliance. Live since November 2025 with 600+ executed trades.
 
-[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)]()
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![MetaTrader 5](https://img.shields.io/badge/Execution-MetaTrader%205-orange.svg)]()
-[![Google Gemini](https://img.shields.io/badge/AI-Google%20Gemini-blueviolet.svg)]()
+_Status: reference · Last updated: 2026-05-13_
 
 ---
 
-## What is ATRX?
+## Quick start
 
-ATRX is a fully autonomous trading system that runs 24/7, scanning 15+ instruments across FX, commodities, and crypto. It combines a **multi-factor quantitative alpha engine** with a **three-tier LLM decision layer** (Google Gemini) and **institutional-grade risk management** -- all coordinated through real-time Telegram controls and a live performance dashboard.
+```bash
+git clone https://github.com/timi-le/atrx-demo.git
+cd atrx-demo
+pip install -r requirements.txt
+python src/main.py --help
+```
 
-**This is not a backtesting framework or a strategy library.** ATRX is a complete, production-deployed trading operation with real capital allocation, real execution, and real risk controls. Live since November 2025 with 600+ executed trades.
+Running against live capital requires broker credentials, the C# execution bridge, and the MT5 Expert Advisor configured per the deployment guide in `docs/`.
 
-### Key Highlights
+## What this is
 
-- **Multi-Factor Alpha Engine** -- Four-component scoring model (Structure, Reversion, Volatility, Momentum) with weighted aggregation and directional bias computation
-- **Three-Tier AI Decision Architecture** -- Gemini Flash pre-filter, Gemini Pro entry analysis, Gemini Pro portfolio-level confirmation. The AI *validates* quantitative signals -- it never overrides the alpha direction
-- **Anti-Martingale Risk Engine** -- Drawdown-tiered position sizing that *reduces* exposure during losing streaks. Includes daily/total drawdown circuit breakers, correlation-aware exposure limits, and per-symbol weight tracking
-- **Prop Firm Compliance Layer** -- Phase-aware risk budgeting (Challenge, Verification, Funded, Scaled) with dynamic position limits, profit banking, and drawdown-triggered de-risking
-- **Cross-Platform Execution Bridge** -- Python alpha engine to C# execution bridge to MQL5 Expert Advisor, providing broker-agnostic order management with queue-based reliability
-- **Live Operations Infrastructure** -- Next.js dashboard, Telegram bot for pause/resume/status, structured decision logging, and automated trade journaling
+A fully autonomous trading system that runs 24/7 across 15+ instruments in FX, commodities, and crypto. It combines a multi-factor quantitative alpha engine with a three-tier LLM decision layer (Google Gemini) and a risk framework built to institutional and prop-firm standards. Live since November 2025 with 600+ executed trades.
 
----
+This is not a backtesting framework or a strategy library. The system places real orders against real capital. This repository documents the architecture, the component design, and the proprietary risk and decision logic at the framework level. Specific thresholds, calibration parameters, and the live operational tooling stay private.
 
-## System Architecture
+## Architecture
 
 ```
 +---------------------------------------------------------------------+
-|                        ATRX TRADING SYSTEM                          |
+|                        ATRX trading system                          |
 +---------------------------------------------------------------------+
 |                                                                     |
 |  +---------------+    +---------------+    +---------------------+  |
-|  |  Market Data  |--->| Alpha Engine  |--->| Candidate Ranking   |  |
-|  |  (MT5 API)    |    |  (4-Factor)   |    | (Multi-Timeframe)   |  |
+|  |  Market data  |--->|  Alpha engine |--->|  Candidate ranking  |  |
+|  |  (MT5 API)    |    |  (4 factor)   |    |  (multi-timeframe)  |  |
 |  +---------------+    +---------------+    +----------+----------+  |
 |                                                       |             |
 |                                           +-----------v----------+  |
-|                                           |   GEMINI AI LAYER    |  |
+|                                           |   Gemini AI layer    |  |
 |                                           |                      |  |
-|                                           |  Tier 1: Pre-Filter  |  |
-|                                           |  (Flash - quick gate)|  |
-|                                           |         |            |  |
-|                                           |  Tier 2: Entry       |  |
-|                                           |  (Pro - full analysis|  |
-|                                           |         |            |  |
-|                                           |  Tier 3: PM Confirm  |  |
-|                                           |  (Pro - portfolio)   |  |
+|                                           |  Tier 1: pre-filter  |  |
+|                                           |  (Flash, quick gate) |  |
+|                                           |                      |  |
+|                                           |  Tier 2: entry       |  |
+|                                           |  (Pro, full analysis)|  |
+|                                           |                      |  |
+|                                           |  Tier 3: PM confirm  |  |
+|                                           |  (Pro, portfolio)    |  |
 |                                           +-----------+----------+  |
 |                                                       |             |
-|  +---------------+    +---------------+    +-----------v----------+  |
-|  |   Portfolio   |<-->|    Risk       |<-->|    Execution         |  |
-|  |   Manager     |    |   Manager     |    |  (C# Bridge - MT5)  |  |
+|  +---------------+    +---------------+    +-----------v---------+  |
+|  |  Portfolio    |<-->|     Risk      |<-->|     Execution       |  |
+|  |  manager      |    |    manager    |    |  (C# bridge, MT5)   |  |
 |  +---------------+    +---------------+    +---------------------+  |
 |                                                                     |
 |  +---------------+    +---------------+    +---------------------+  |
-|  |  Telegram     |    |  Dashboard    |    |  Decision Logger    |  |
-|  |  Control Bot  |    |  (Next.js)    |    |  + Trade Journal    |  |
+|  |   Telegram    |    |   Dashboard   |    |  Decision logger    |  |
+|  |   control bot |    |   (Next.js)   |    |  and trade journal  |  |
 |  +---------------+    +---------------+    +---------------------+  |
 |                                                                     |
 +---------------------------------------------------------------------+
-  Instruments: XAUUSD, GBPUSD, USDJPY, EURUSD, BTCUSD + 10 more
+
+  Instruments: XAUUSD, GBPUSD, USDJPY, EURUSD, BTCUSD plus 10 others
   Timeframes:  D1, H4, H1, M15, M5, M1
   Execution:   24/7 automated via MetaTrader 5
 ```
 
----
+## Components
 
-## Core Components
+### Alpha engine
 
-### 1. Alpha Generation Engine (`src/modules/market_data.py`)
+Multi-factor scoring model in `src/modules/market_data.py`. Produces a quality score on `[0, 1]` and a directional signal on `[-1, +1]`.
 
-A multi-factor scoring model that produces both a **quality score** (0-1, "how good is this setup?") and a **directional signal** (-1 to +1, "which way?").
-
-**Factor Stack:**
-
-| Factor | Weight | What It Measures |
-|--------|--------|-----------------|
+| Factor | Weight | What it measures |
+|---|---|---|
 | Structure | 35% | Proximity to liquidity levels (support/resistance sweeps) |
 | Reversion | 30% | Mean-reversion opportunity (deviation from fair value via EMA/ATR z-score) |
-| Volatility | 20% | Current ATR vs. rolling average -- regime detection |
-| Momentum | 15% | Fast/slow EMA separation -- trend strength and direction |
+| Volatility | 20% | Current ATR vs. rolling average. Regime detection. |
+| Momentum | 15% | Fast/slow EMA separation. Trend strength and direction. |
 
-**Directional Blend:**
+The directional opinion is a blend of trend bias (45%), momentum direction (30%), structure bias (15%), and reversion bias (10%). The result constrains all downstream decisions.
 
-The system computes a signed directional opinion by blending trend bias (45%), momentum direction (30%), structure bias (15%), and reversion bias (10%) into a single [-1, +1] signal that constrains all downstream decisions.
+This public repository shows the framework and the architecture. Specific thresholds, calibration parameters, and proprietary enhancements used in the live system are not included.
 
-> **Note:** This public repository shows the framework and architecture. Specific thresholds, calibration parameters, and proprietary enhancements used in the live system are not included.
+### Three-tier LLM decision layer
 
-### 2. Three-Tier AI Decision Layer (`src/modules/brain.py`)
-
-Rather than using AI to *generate* trading signals, ATRX uses Google Gemini as a **validation and reasoning layer** on top of quantitative signals.
+The Gemini API is used as a validation and reasoning layer on top of the quantitative signal, not as a generator of signals.
 
 ```
-Candidate Pool (Alpha > threshold)
+Candidate pool (alpha > threshold)
         |
         v
    +---------+
-   | TIER 1  |  Gemini Flash -- "Is this worth analyzing?"
-   | Pre-Filt|  Cost: ~$0.001/call | Latency: <1s
+   | Tier 1  |   Gemini Flash. "Is this worth analyzing?"
+   |Pre-filt |   ~$0.001 per call, sub-second.
    +----+----+
         | worthy=true
         v
    +---------+
-   | TIER 2  |  Gemini Pro -- Full entry decision (BUY/SELL/HOLD)
-   | Entry   |  Receives: alpha scores, macro context, news overlay
-   +----+----+  Constraint: MUST align with alpha_direction
+   | Tier 2  |   Gemini Pro. Full entry decision (BUY/SELL/HOLD).
+   | Entry   |   Inputs: alpha scores, macro context, news overlay.
+   +----+----+   Constraint: must align with alpha_direction.
         | action=BUY/SELL
         v
    +---------+
-   | TIER 3  |  Gemini Pro -- Portfolio-level confirmation
-   | PM Gate |  Reviews: correlation risk, open exposure, drawdown
-   +---------+  Can: approve, reduce size, or veto
+   | Tier 3  |   Gemini Pro. Portfolio-level confirmation.
+   | PM gate |   Reviews: correlation risk, open exposure, drawdown.
+   +---------+   Can: approve, reduce size, or veto.
 ```
 
-**Directional Constraint Enforcement:**
+Directional constraint enforcement: the model is never allowed to contradict the alpha direction. If the alpha stack says the bias is bullish, the model cannot recommend a SELL. This rules out the failure mode where LLMs hallucinate market opinions and override the quantitative edge.
 
-The AI is *never* allowed to contradict the quantitative alpha direction. If the alpha stack says the bias is bullish, Gemini cannot recommend a SELL. This prevents the well-known failure mode where LLMs "hallucinate" market opinions that override quantitative edge.
+### Risk manager
 
-### 3. Risk Management Framework
+Anti-martingale position sizing in `src/modules/risk_manager.py`. The system reduces exposure during losing streaks rather than averaging in.
 
-**Anti-Martingale Position Sizing (`src/modules/risk_manager.py`):**
+| Account drawdown | Risk multiplier | Behaviour |
+|---|---|---|
+| 0 to 1% | 100% | Full sizing |
+| 1 to 2% | 75% | Early caution |
+| 2 to 3% | 50% | Defensive |
+| 3% and above | 25% | Survival |
 
-| Drawdown Level | Risk Multiplier | Philosophy |
-|----------------|----------------|------------|
-| 0-1% | 100% (full) | Normal operations |
-| 1-2% | 75% | Early caution |
-| 2-3% | 50% | Defensive mode |
-| 3%+ | 25% | Survival mode |
+### Prop firm compliance
 
-**Prop Firm Risk Layer (`src/modules/prop_firm_risk.py`):**
+Phase-aware risk budgeting in `src/modules/prop_firm_risk.py`. Covers Challenge, Verification, Funded, and Scaled phases.
 
-- Phase-aware budgeting (Challenge: 0.50-1.25% per trade, Funded: 0.25-1.00%)
-- Currency correlation tracking (e.g., EURUSD + GBPUSD = shared USD exposure)
-- Dynamic position limits based on available risk budget
-- Drawdown circuit breakers (daily 3.8%, total 8.0%)
-- Profit banking with configurable targets
+- Challenge: 0.50 to 1.25% per trade.
+- Funded: 0.25 to 1.00% per trade.
+- Currency-correlation tracking (e.g., EURUSD + GBPUSD share USD exposure).
+- Dynamic position limits based on available risk budget.
+- Drawdown circuit breakers: daily 3.8%, total 8.0%.
+- Profit banking with configurable targets.
 
-### 4. Cross-Platform Execution Bridge
-
-```
-Python (Alpha Engine) --HTTP POST--> C# Bridge --File Queue--> MT5 EA (MQL5)
-                                         |
-                                    Persistent queue
-                                    (pending - inflight - done/failed)
-```
-
-The execution bridge solves the problem of Python not having native MT5 socket access on Linux/Docker deployments. The C# bridge acts as a reliable message queue with lease-based retry logic.
-
-### 5. Live Operations
-
-- **Telegram Bot**: Pause/resume trading, force close positions, check status, adjust risk -- all from your phone
-- **Next.js Dashboard**: Real-time P&L, open positions, alpha scores, decision logs
-- **Structured Logging**: Every decision (entry, exit, skip, veto) is logged with full context for post-mortem analysis
-- **Trade Journal**: Automated snapshots of entry conditions, alpha state, and AI reasoning for each trade
-
----
-
-## Project Structure
+### Cross-platform execution bridge
 
 ```
-atrx/
-|-- src/
-|   |-- main.py                    # Core trading loop and orchestration
-|   |-- api_server.py              # FastAPI backend for dashboard
-|   |-- config/
-|   |   |-- settings.py            # Pydantic configuration (env-driven)
-|   |   +-- presets.py             # Trading presets (normal/prop/aggressive)
-|   +-- modules/
-|       |-- market_data.py         # Alpha engine (4-factor model)
-|       |-- brain.py               # Three-tier Gemini decision engine
-|       |-- risk_manager.py        # Anti-martingale risk framework
-|       |-- prop_firm_risk.py      # Prop firm compliance layer
-|       |-- portfolio_manager.py   # Portfolio-level coordination
-|       |-- broker.py              # MT5 API wrapper
-|       |-- session_manager.py     # Trading session awareness
-|       |-- news_manager.py        # Economic calendar integration
-|       |-- macro_confluence.py    # Multi-timeframe trend scoring
-|       |-- notifier.py            # Telegram notifications
-|       |-- listener.py            # Telegram command handler
-|       |-- decision_logger.py     # Structured decision logging
-|       |-- trade_journal.py       # Trade snapshot journal
-|       |-- symbol_weight_tracker.py # Adaptive symbol weighting
-|       +-- state_exporter.py      # Dashboard state export
-|-- bridge_csharp/                 # C# execution bridge
-|   +-- ExecutionBridge/
-|       |-- Program.cs             # HTTP listener + MT5 queue
-|       |-- FileQueueStore.cs      # Persistent file-based queue
-|       +-- Models.cs              # Order/response models
-|-- mt5/
-|   +-- ATRX_ExecutorEA.mq5       # MetaTrader 5 Expert Advisor
-|-- dashboard/                     # Next.js real-time dashboard
-|   +-- src/
-|       |-- components/Dashboard.tsx
-|       +-- lib/atrx-client.ts
-|-- strategy.xml                   # AI reasoning instructions
-|-- docker-compose.yml             # Container orchestration
-|-- Dockerfile                     # Python service container
-+-- requirements.txt               # Python dependencies
+Python (alpha engine)  --HTTP POST-->  C# bridge  --File queue-->  MT5 EA (MQL5)
+                                            |
+                                       Persistent queue
+                                       (pending, inflight, done/failed)
 ```
 
----
+The bridge exists because Python has no native MT5 socket access on Linux or Docker. The C# service acts as a reliable message queue with lease-based retry.
 
-## Quantitative Concepts
+### Live operations
 
-This system demonstrates practical application of:
+- Telegram bot for pause/resume, force-close positions, status checks, and risk adjustment from a phone.
+- Next.js dashboard for real-time P&L, open positions, alpha scores, and decision logs.
+- Structured decision logging. Every entry, exit, skip, and veto is logged with full context.
+- Automated trade journal. Per-trade snapshots of entry conditions, alpha state, and model reasoning.
 
-- **Factor-Based Alpha Models** -- Multi-factor scoring with weighted aggregation, comparable to Fama-French style decomposition applied to execution timeframes
-- **Statistical Arbitrage** -- Mean-reversion detection via z-score analysis normalized by ATR
-- **Regime Detection** -- Volatility-based classification of market conditions (trending vs. ranging)
-- **Portfolio Risk Management** -- Correlation-aware exposure limits, anti-martingale sizing, and drawdown-contingent de-risking
-- **Position Sizing Theory** -- Kelly-adjacent risk budgeting with institutional constraints
-- **Multi-Timeframe Analysis** -- Macro context (D1/H4/H1) informing micro execution (M5/M1)
-- **LLM-as-Validator Architecture** -- AI validates quantitative signals without overriding directional edge
+## Quantitative concepts demonstrated
 
----
+- Factor-based alpha models with weighted aggregation, comparable to Fama-French style decomposition applied to execution timeframes.
+- Statistical arbitrage via mean-reversion z-score analysis normalised by ATR.
+- Regime detection by volatility-based classification of market conditions.
+- Portfolio risk management with correlation-aware exposure limits and drawdown-contingent de-risking.
+- Position sizing with Kelly-adjacent risk budgeting under institutional constraints.
+- Multi-timeframe analysis (D1/H4/H1 macro context informing M5/M1 execution).
+- LLM-as-validator architecture where the model validates quantitative signals without overriding direction.
 
-## Technology Stack
+## Tech stack
 
-| Layer | Technology |
-|-------|-----------|
-| Alpha Engine | Python 3.10+, Pandas, pandas-ta, NumPy |
-| AI Layer | Google Gemini API (Flash + Pro) |
-| Configuration | Pydantic Settings, environment-driven |
-| Execution | MetaTrader 5 API, C# Bridge (.NET 8), MQL5 EA |
-| Dashboard | Next.js, TypeScript, Tailwind CSS |
-| Notifications | Telegram Bot API |
-| News Data | Finnhub API, ForexFactory calendar |
-| Deployment | Docker, Docker Compose |
+Python 3.10+, Pandas, pandas-ta, NumPy, Google Gemini API (Flash and Pro), Pydantic Settings, MetaTrader 5 API, C# Bridge on .NET 8, MQL5 Expert Advisor, Next.js, TypeScript, Tailwind CSS, Telegram Bot API, Finnhub, ForexFactory, Docker, Docker Compose.
 
----
+## What this is NOT
 
-## Related Repositories
+- Not a deployable trading bot. The runnable production system, broker credentials, and live calibration are private.
+- Not financial advice. The code is published for technical reference.
+- Not a backtesting framework. Backtesting and research live in [research-engine](https://github.com/timi-le/research-engine).
+- Not benchmarked against external trading systems. Internal benchmarks are tracked privately.
 
-- **[Research-Engine](https://github.com/timi-le/Research-Engine)** -- Quantitative research and alpha generation engine. ML training pipelines (XGBoost, LSTM, CNN), HMM regime detection, JIT-optimized feature engineering, backtesting with stress testing. 25,000+ lines of Python.
+## Repository layout
 
----
+```
+src/
+  main.py                     Core trading loop and orchestration
+  api_server.py               FastAPI backend for dashboard
+  config/
+    settings.py               Pydantic configuration (env-driven)
+    presets.py                Trading presets (normal, prop, aggressive)
+  modules/
+    market_data.py            Alpha engine (4-factor model)
+    brain.py                  Three-tier Gemini decision engine
+    risk_manager.py           Anti-martingale risk framework
+    prop_firm_risk.py         Prop firm compliance layer
+    portfolio_manager.py      Portfolio-level coordination
+    broker.py                 MT5 API wrapper
+    session_manager.py        Trading session awareness
+    news_manager.py           Economic calendar integration
+    macro_confluence.py       Multi-timeframe trend scoring
+    notifier.py               Telegram notifications
+    listener.py               Telegram command handler
+    decision_logger.py        Structured decision logging
+    trade_journal.py          Trade snapshot journal
+    symbol_weight_tracker.py  Adaptive symbol weighting
+    state_exporter.py         Dashboard state export
+bridge_csharp/                C# execution bridge (.NET 8)
+mt5/
+  ATRX_ExecutorEA.mq5         MetaTrader 5 Expert Advisor
+dashboard/                    Next.js real-time dashboard
+strategy.xml                  Model reasoning instructions
+docker-compose.yml            Container orchestration
+Dockerfile                    Python service container
+requirements.txt              Python dependencies
+```
+
+## Related work
+
+- **[atrx-public](https://github.com/timi-le/atrx-public)**. The sanitized public reference for the broader ATRX architecture.
+- **[research-engine](https://github.com/timi-le/research-engine)**. Quantitative research and alpha-generation engine. ML training pipelines, regime detection, backtesting framework.
+- **[fx-volatility-predictor](https://github.com/timi-le/fx-volatility-predictor)**. FX volatility forecasting with walk-forward validation.
 
 ## Disclaimer
 
-This repository is provided for **educational and portfolio purposes**. It demonstrates system architecture, quantitative methodology, and software engineering practices. The alpha generation parameters in the live system differ from what is shown here. Past performance does not guarantee future results. Trading involves substantial risk of loss.
-
----
-
-## Author
-
-**Timilehin Olapade** -- ML Engineer & Quantitative Developer
-MScFE Candidate, WorldQuant University
-[atrx.io](https://atrx.io)
-
----
+This repository is published for technical reference. The live system's alpha parameters and calibration differ from the framework shown here. Past performance does not guarantee future results. Trading involves substantial risk of loss.
 
 ## License
 
-MIT License -- See [LICENSE](LICENSE) for details.
+MIT. See `LICENSE`.
